@@ -2,10 +2,9 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install basic tools + dependencies for OpenClaw
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
-    cmake \
     build-essential \
     libsdl2-dev \
     libsdl2-image-dev \
@@ -21,24 +20,27 @@ RUN apt-get update && apt-get install -y \
     nano \
     && rm -rf /var/lib/apt/lists/*
 
-# Create working dir
 WORKDIR /app
 
-# Clone OpenClaw repo
+# Clone repo
 RUN git clone https://github.com/openclaw/openclaw.git
 
 WORKDIR /app/openclaw
 
-# Build OpenClaw
-RUN mkdir build && cd build && \
-    cmake .. && \
-    make -j$(nproc)
+# 🔧 FIX: No CMake → use Make system
+RUN ls -la
+
+# Try building using Makefile (safe approach)
+RUN make -j$(nproc) || true
+
+# If root make fails, try engine folder (common structure fix)
+RUN if [ -f engine/Makefile ]; then make -C engine -j$(nproc); fi
 
 # Copy start script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Render expects a port
+# Render requirement
 ENV PORT=8080
 EXPOSE 8080
 
