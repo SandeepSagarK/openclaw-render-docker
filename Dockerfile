@@ -1,8 +1,10 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1
+ENV PORT=8080
 
-# Install dependencies
+# Install system + GUI + VNC
 RUN apt-get update && apt-get install -y \
     git \
     build-essential \
@@ -15,33 +17,32 @@ RUN apt-get update && apt-get install -y \
     libglew-dev \
     libgl1-mesa-dev \
     libglu1-mesa-dev \
-    wget \
-    curl \
-    nano \
+    xvfb \
+    fluxbox \
+    x11vnc \
+    websockify \
+    novnc \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Clone repo
+# Clone OpenClaw
 RUN git clone https://github.com/openclaw/openclaw.git
 
 WORKDIR /app/openclaw
 
-# 🔧 FIX: No CMake → use Make system
-RUN ls -la
-
-# Try building using Makefile (safe approach)
+# Try build (safe fallback)
 RUN make -j$(nproc) || true
-
-# If root make fails, try engine folder (common structure fix)
 RUN if [ -f engine/Makefile ]; then make -C engine -j$(nproc); fi
+
+# noVNC setup
+RUN ln -s /usr/share/novnc/vnc.html /app/index.html
 
 # Copy start script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Render requirement
-ENV PORT=8080
 EXPOSE 8080
 
 CMD ["/start.sh"]
